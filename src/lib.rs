@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
+use std::path::Path;
 
 use lazy_static::lazy_static;
 use regex::{Regex, RegexSet};
@@ -312,7 +313,7 @@ fn process_line(
 
 pub fn parse_xtrace_file(
     id: uuid::Uuid,
-    file: String,
+    file: &Path,
 ) -> Result<XtraceFileRecord, std::io::Error> {
     let xtrace_file = File::open(file)?;
     let mut reader = BufReader::new(xtrace_file);
