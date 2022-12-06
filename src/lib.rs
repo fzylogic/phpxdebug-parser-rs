@@ -154,6 +154,7 @@ impl XtraceRecord for XtraceEntryRecord {
     fn new(line: &str) -> Self {
         let re = Regex::new(LineRegex::FunctionEntry.regex_str()).unwrap();
         let cap = re.captures(line).ok_or("oops").unwrap();
+        println!("{line}");
         return XtraceEntryRecord {
             rec_type: RecType::Entry,
             level: cap.name("level").unwrap().as_str().parse::<u32>().unwrap(),
