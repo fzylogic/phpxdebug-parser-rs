@@ -31,27 +31,22 @@ enum RecType {
 trait XtraceRecord {
     fn new(line: &str) -> Self;
 }
+
 trait XtraceFn {}
 
 #[allow(unused)]
 #[derive(Clone, Debug)]
 pub struct XtraceFileRecord {
-    id: uuid::Uuid,
-    start: Option<XtraceStartTimeRecord>,
-    format: Option<XtraceFmtRecord>,
-    version: Option<XtraceVersionRecord>,
-    fn_records: Vec<XtraceFnRecord>,
+    pub id: uuid::Uuid,
+    pub start: Option<XtraceStartTimeRecord>,
+    pub format: Option<XtraceFmtRecord>,
+    pub version: Option<XtraceVersionRecord>,
+    pub fn_records: Vec<XtraceFnRecord>,
 }
+
 impl XtraceFileRecord {
     fn add_fn_record(&mut self, func: XtraceFnRecord) {
         self.fn_records.push(func);
-    }
-    pub fn score(&self) -> u32 {
-        let mut score = 0;
-        for record in self.fn_records.iter() {
-            score += record.score();
-        }
-        score
     }
 
     pub fn print_tree(&self) {
@@ -68,28 +63,14 @@ impl XtraceFileRecord {
             }
         }
     }
-    // Want to look at the following
-    // What % of fn calls are from within eval() blocks
-    // Any network fns?
-    // Signs of obfuscation? (calls to ord(), etc)
-    // eval from user-provided data
-    // fn name matches /^[oO]{3,}/
-    // disabling error reporting?
-    // single lines running large numbers of functions?
-    // ANY call to curl_exec()?
+}
 
-}
-impl XtraceFnRecord {
-    fn score(&self) -> u32 {
-        1
-    }
-}
 #[allow(unused)]
 #[derive(Clone, Debug)]
 pub struct XtraceFnRecord {
-    fn_num: u32,
-    entry_record: Option<XtraceEntryRecord>,
-    exit_record: Option<XtraceExitRecord>,
+    pub fn_num: u32,
+    pub entry_record: Option<XtraceEntryRecord>,
+    pub exit_record: Option<XtraceExitRecord>,
     //return_record: Option<XtraceReturnRecord>,
 }
 
@@ -108,10 +89,11 @@ impl XtraceRecord for XtraceVersionRecord {
         }
     }
 }
+
 #[allow(unused)]
 #[derive(Clone, Debug)]
 pub struct XtraceVersionRecord {
-    version: String,
+    pub version: String,
     rec_type: RecType,
 }
 
@@ -125,10 +107,11 @@ impl XtraceRecord for XtraceStartTimeRecord {
         }
     }
 }
+
 #[allow(unused)]
 #[derive(Clone, Debug)]
 pub struct XtraceStartTimeRecord {
-    start_time: String,
+    pub start_time: String,
     rec_type: RecType,
 }
 
@@ -152,10 +135,11 @@ impl XtraceRecord for XtraceFmtRecord {
         }
     }
 }
+
 #[allow(unused)]
 #[derive(Clone, Debug)]
 pub struct XtraceFmtRecord {
-    format: u32,
+    pub format: u32,
     rec_type: RecType,
 }
 
@@ -205,21 +189,23 @@ impl XtraceRecord for XtraceEntryRecord {
         };
     }
 }
+
 #[allow(unused)]
 #[derive(Clone, Debug)]
-struct XtraceEntryRecord {
+pub struct XtraceEntryRecord {
     rec_type: RecType,
-    level: u32,
-    fn_num: u32,
-    time_idx: f64,
-    mem_usage: u32,
-    fn_name: String,
-    fn_type: u8,
-    inc_file_name: String,
-    file_name: String,
-    line_num: u32,
-    arg_num: u32,
-    args: String,
+    pub level: u32,
+    pub fn_num: u32,
+    pub time_idx: f64,
+    pub mem_usage: u32,
+    pub fn_name: String,
+    pub fn_type: u8,
+    pub inc_file_name: String,
+    pub file_name: String,
+    pub line_num: u32,
+    pub arg_num: u32,
+    //TODO Make this a byte slice
+    pub args: String,
 }
 
 impl XtraceFn for XtraceExitRecord {}
@@ -227,7 +213,7 @@ impl XtraceRecord for XtraceExitRecord {
     fn new(line: &str) -> Self {
         let re = Regex::new(LineRegex::FunctionExit.regex_str()).unwrap();
         let cap = re.captures(line).ok_or("oops").unwrap();
-        return XtraceExitRecord {
+        XtraceExitRecord {
             rec_type: RecType::Exit,
             level: cap.name("level").unwrap().as_str().parse::<u32>().unwrap(),
             fn_num: cap.name("fn_num").unwrap().as_str().parse::<u32>().unwrap(),
@@ -243,17 +229,17 @@ impl XtraceRecord for XtraceExitRecord {
                 .as_str()
                 .parse::<u32>()
                 .unwrap(),
-        };
+        }
     }
 }
 #[allow(unused)]
 #[derive(Clone, Debug)]
-struct XtraceExitRecord {
-    level: u32,
-    fn_num: u32,
+pub struct XtraceExitRecord {
+    pub level: u32,
+    pub fn_num: u32,
     rec_type: RecType,
-    time_idx: f64,
-    mem_usage: u32,
+    pub time_idx: f64,
+    pub mem_usage: u32,
 }
 
 enum LineRegex {
@@ -265,6 +251,7 @@ enum LineRegex {
     End,
     Penultimate,
 }
+
 impl LineRegex {
     fn regex_str(&self) -> &str {
         match self {
@@ -286,6 +273,7 @@ impl LineRegex {
         }
     }
 }
+
 fn process_line(
     run: &mut XtraceFileRecord,
     entry_cache: &mut HashMap<u32, XtraceEntryRecord>,
@@ -321,6 +309,7 @@ fn process_line(
         _ => todo!(),
     };
 }
+
 pub fn parse_xtrace_file(
     id: uuid::Uuid,
     file: String,
@@ -329,7 +318,7 @@ pub fn parse_xtrace_file(
     let mut reader = BufReader::new(xtrace_file);
     //let mut line = String::new();
     let mut line: Vec<u8> = Vec::new();
-    let mut run = XtraceFileRecord {
+    let mut file_run = XtraceFileRecord {
         id,
         format: None,
         start: None,
@@ -344,11 +333,11 @@ pub fn parse_xtrace_file(
         match result {
             Ok(size) => {
                 if size == 0 {
-                    return Ok(run);
+                    return Ok(file_run);
                 }
                 //println!("Processing line {line_number}: {line}");
                 process_line(
-                    &mut run,
+                    &mut file_run,
                     &mut entry_cache,
                     &String::from_utf8_lossy(line.as_slice()).to_string(),
                 );
@@ -362,6 +351,14 @@ pub fn parse_xtrace_file(
         line.clear();
     }
 }
+
+// Not yet implemented
+/*    struct XtraceReturnRecord {
+    level: u32,
+    fn_num: u32,
+    rec_type: RecType,
+    ret_val: u32, // Need to confirm this type. I have yet to see an example to work from and the docs aren't specific.
+}*/
 
 #[cfg(test)]
 mod tests {
