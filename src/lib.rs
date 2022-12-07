@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::VecDeque;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
@@ -55,7 +56,7 @@ impl XtraceFileRecord {
             if let Some(entry_record) = &record.entry_record {
                 let prefix = "  ".repeat(entry_record.level.try_into().unwrap());
                 println!(
-                    "{prefix}{}({}) ({}) ({})",
+                    "{prefix}{}({:?}) ({}) ({})",
                     &entry_record.fn_name,
                     &entry_record.fn_type,
                     &entry_record.file_name,
@@ -101,9 +102,10 @@ pub struct XtraceVersionRecord {
 impl XtraceRecord for XtraceStartTimeRecord {
     fn new(line: &str) -> Self {
         let re = Regex::new(LineRegex::Start.regex_str()).unwrap();
-        let _cap = re.captures(line).ok_or("oops").unwrap();
+        let cap = re.captures(line).ok_or("oops").unwrap();
+
         XtraceStartTimeRecord {
-            start_time: String::from("Sat Dec  3 18:01:30 PST 2022"),
+            start_time: cap.name("start").unwrap().as_str().to_owned(),
             rec_type: RecType::StartTime,
         }
     }
@@ -144,50 +146,40 @@ pub struct XtraceFmtRecord {
     rec_type: RecType,
 }
 
-/*    enum FnType {
+#[derive(Clone, Debug)]
+pub enum FnType {
     Internal,
     User,
-}*/
+}
+
+impl FnType {
+    fn from(num: u8) -> FnType {
+        match num {
+            0 => FnType::Internal,
+            1 => FnType::User,
+            _ => panic!("Found unknown function type: {num}"),
+        }
+    }
+}
 
 impl XtraceFn for XtraceEntryRecord {}
 impl XtraceRecord for XtraceEntryRecord {
     fn new(line: &str) -> Self {
-        let re = Regex::new(LineRegex::FunctionEntry.regex_str()).unwrap();
-        let cap = re.captures(line).ok_or("oops").unwrap();
         println!("{line}");
+        let mut fields: VecDeque<&str> = line.split("\t").collect();
         return XtraceEntryRecord {
             rec_type: RecType::Entry,
-            level: cap.name("level").unwrap().as_str().parse::<u32>().unwrap(),
-            fn_num: cap.name("fn_num").unwrap().as_str().parse::<u32>().unwrap(),
-            time_idx: cap
-                .name("time_idx")
-                .unwrap()
-                .as_str()
-                .parse::<f64>()
-                .unwrap(),
-            mem_usage: cap
-                .name("mem_usage")
-                .unwrap()
-                .as_str()
-                .parse::<u32>()
-                .unwrap(),
-            fn_name: cap.name("fn_name").unwrap().as_str().to_owned(),
-            fn_type: cap.name("fn_type").unwrap().as_str().parse::<u8>().unwrap(),
-            inc_file_name: cap.name("inc_file_name").unwrap().as_str().to_owned(),
-            file_name: cap.name("file_name").unwrap().as_str().to_owned(),
-            line_num: cap
-                .name("line_num")
-                .unwrap()
-                .as_str()
-                .parse::<u32>()
-                .unwrap(),
-            arg_num: cap
-                .name("arg_num")
-                .unwrap()
-                .as_str()
-                .parse::<u32>()
-                .unwrap(),
-            args: cap.name("args").unwrap().as_str().to_owned(),
+            level: fields.pop_front().unwrap().parse::<u32>().unwrap(),
+            fn_num: fields.pop_front().unwrap().parse::<u32>().unwrap(),
+            time_idx: fields.pop_front().unwrap().parse::<f64>().unwrap(),
+            mem_usage: fields.pop_front().unwrap().parse::<u32>().unwrap(),
+            fn_name: fields.pop_front().unwrap().to_owned(),
+            fn_type: FnType::from(fields.pop_front().unwrap().parse::<u8>().unwrap()),
+            inc_file_name: fields.pop_front().unwrap().to_owned(),
+            file_name: fields.pop_front().unwrap().to_owned(),
+            line_num: fields.pop_front().unwrap().parse::<u32>().unwrap(),
+            arg_num: fields.pop_front().unwrap().parse::<u32>().unwrap(),
+            args: fields.iter().map(|f| f.to_string()).collect(),
         };
     }
 }
@@ -201,13 +193,13 @@ pub struct XtraceEntryRecord {
     pub time_idx: f64,
     pub mem_usage: u32,
     pub fn_name: String,
-    pub fn_type: u8,
+    pub fn_type: FnType,
     pub inc_file_name: String,
     pub file_name: String,
     pub line_num: u32,
     pub arg_num: u32,
     //TODO Make this a byte slice
-    pub args: String,
+    pub args: Vec<String>,
 }
 
 impl XtraceFn for XtraceExitRecord {}
