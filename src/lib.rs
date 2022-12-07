@@ -332,6 +332,9 @@ pub fn parse_xtrace_file(
                     return Ok(file_run);
                 }
                 //println!("Processing line {line_number}: {line}");
+                if line.len() == 1 { // likely just a newline
+                    continue;
+                }
                 process_line(
                     &mut file_run,
                     &mut entry_cache,
