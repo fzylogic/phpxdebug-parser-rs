@@ -167,6 +167,7 @@ impl XtraceRecord for XtraceEntryRecord {
     fn new(line: &str) -> Self {
         println!("{line}");
         let mut fields: VecDeque<&str> = line.split("\t").collect();
+        println!("{:?}", fields);
         return XtraceEntryRecord {
             rec_type: RecType::Entry,
             level: fields.pop_front().unwrap().parse::<u32>().unwrap(),
