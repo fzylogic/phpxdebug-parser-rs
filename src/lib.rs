@@ -4,7 +4,7 @@ use std::ffi::{OsString};
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use lazy_static::lazy_static;
 use regex::{Regex, RegexSet};
@@ -41,7 +41,7 @@ trait XtraceFn {}
 #[derive(Clone, Debug)]
 pub struct XtraceFileRecord {
     pub id: uuid::Uuid,
-    pub filename: Box<OsString>,
+    pub filename: Box<PathBuf>,
     pub start: Option<XtraceStartTimeRecord>,
     pub format: Option<XtraceFmtRecord>,
     pub version: Option<XtraceVersionRecord>,
@@ -303,7 +303,7 @@ pub fn parse_xtrace_file(id: uuid::Uuid, file: &Path) -> Result<XtraceFileRecord
     let mut line: Vec<u8> = Vec::new();
     let mut file_run = XtraceFileRecord {
         id,
-        filename: Box::new(file.file_name().unwrap().to_os_string()),
+        filename: Box::new(file.to_owned()),
         format: None,
         start: None,
         version: None,
