@@ -11,17 +11,17 @@ use regex::{Regex, RegexSet};
 
 static SUPPORTED_FILE_FORMATS: &[&str] = &["4"];
 lazy_static! {
-        static ref RE_SET: regex::RegexSet = RegexSet::new([
-            LineRegex::Version.regex_str(),
-            LineRegex::Format.regex_str(),
-            LineRegex::Start.regex_str(),
-            LineRegex::FunctionEntry.regex_str(),
-            LineRegex::FunctionExit.regex_str(),
-            LineRegex::Penultimate.regex_str(),
-            LineRegex::End.regex_str(),
-        ])
-        .unwrap();
-    }
+    static ref RE_SET: regex::RegexSet = RegexSet::new([
+        LineRegex::Version.regex_str(),
+        LineRegex::Format.regex_str(),
+        LineRegex::Start.regex_str(),
+        LineRegex::FunctionEntry.regex_str(),
+        LineRegex::FunctionExit.regex_str(),
+        LineRegex::Penultimate.regex_str(),
+        LineRegex::End.regex_str(),
+    ])
+    .unwrap();
+}
 #[derive(Clone, Debug)]
 enum RecType {
     Entry,
@@ -253,13 +253,9 @@ impl LineRegex {
             LineRegex::FunctionEntry => {
                 r"^(\d+)\t(\d+)\t(0)\t(\d+\.\d+)\t(\d+)\t(.*)\t([01])\t(.*)\t(.*)\t(\d+)\t(\d+)\t?(.*)"
             }
-            LineRegex::FunctionExit => {
-                r"^(\d+)\t(\d+)\t(1)\t(\d+\.\d+)\t(\d+).*"
-            }
+            LineRegex::FunctionExit => r"^(\d+)\t(\d+)\t(1)\t(\d+\.\d+)\t(\d+).*",
             LineRegex::Penultimate => r"^\s+(?P<time_idx>\d+\.\d+)\t(?P<mem_usage>\d+)",
-            LineRegex::End => {
-                r"^TRACE END\s+\[(?P<end>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+)\]"
-            }
+            LineRegex::End => r"^TRACE END\s+\[(?P<end>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+)\]",
         }
     }
 }
@@ -300,10 +296,7 @@ fn process_line(
     };
 }
 
-pub fn parse_xtrace_file(
-    id: uuid::Uuid,
-    file: &Path,
-) -> Result<XtraceFileRecord, std::io::Error> {
+pub fn parse_xtrace_file(id: uuid::Uuid, file: &Path) -> Result<XtraceFileRecord, std::io::Error> {
     let xtrace_file = File::open(file)?;
     let mut reader = BufReader::new(xtrace_file);
     //let mut line = String::new();
@@ -327,7 +320,8 @@ pub fn parse_xtrace_file(
                     return Ok(file_run);
                 }
                 //println!("Processing line {line_number}: {line}");
-                if line.len() == 1 { // likely just a newline
+                if line.len() == 1 {
+                    // likely just a newline
                     continue;
                 }
                 process_line(
