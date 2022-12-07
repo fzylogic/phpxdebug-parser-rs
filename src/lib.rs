@@ -213,6 +213,7 @@ impl XtraceRecord for XtraceExitRecord {
             rec_type: RecType::Exit,
             level: fields.pop_front().unwrap().parse::<u32>().unwrap(),
             fn_num: fields.pop_front().unwrap().parse::<u32>().unwrap(),
+            type_tag: fields.pop_front().unwrap().parse::<u8>().unwrap(),
             time_idx: fields.pop_front().unwrap().parse::<f64>().unwrap(),
             mem_usage: fields.pop_front().unwrap().parse::<u32>().unwrap(),
         }
@@ -224,6 +225,7 @@ pub struct XtraceExitRecord {
     pub level: u32,
     pub fn_num: u32,
     rec_type: RecType,
+    type_tag: u8,
     pub time_idx: f64,
     pub mem_usage: u32,
 }
