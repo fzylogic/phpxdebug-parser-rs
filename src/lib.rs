@@ -207,24 +207,14 @@ pub struct XtraceEntryRecord {
 impl XtraceFn for XtraceExitRecord {}
 impl XtraceRecord for XtraceExitRecord {
     fn new(line: &str) -> Self {
-        let re = Regex::new(LineRegex::FunctionExit.regex_str()).unwrap();
-        let cap = re.captures(line).ok_or("oops").unwrap();
+        let this_line = line.trim();
+        let mut fields: VecDeque<&str> = this_line.split("\t").collect();
         XtraceExitRecord {
             rec_type: RecType::Exit,
-            level: cap.name("level").unwrap().as_str().parse::<u32>().unwrap(),
-            fn_num: cap.name("fn_num").unwrap().as_str().parse::<u32>().unwrap(),
-            time_idx: cap
-                .name("time_idx")
-                .unwrap()
-                .as_str()
-                .parse::<f64>()
-                .unwrap(),
-            mem_usage: cap
-                .name("mem_usage")
-                .unwrap()
-                .as_str()
-                .parse::<u32>()
-                .unwrap(),
+            level: fields.pop_front().unwrap().parse::<u32>().unwrap(),
+            fn_num: fields.pop_front().unwrap().parse::<u32>().unwrap(),
+            time_idx: fields.pop_front().unwrap().parse::<f64>().unwrap(),
+            mem_usage: fields.pop_front().unwrap().parse::<u32>().unwrap(),
         }
     }
 }
@@ -257,10 +247,10 @@ impl LineRegex {
                 r"^TRACE START \[(?P<start>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+)\]"
             }
             LineRegex::FunctionEntry => {
-                r"^(?P<level>\d+)\t(?P<fn_num>\d+)\t(?P<rec_type>0)\t(?P<time_idx>\d+\.\d+)\t(?P<mem_usage>\d+)\t(?P<fn_name>.*)\t(?P<fn_type>[01])\t(?P<inc_file_name>.*)\t(?P<file_name>.*)\t(?P<line_num>\d+)\t(?P<arg_num>\d+)\t?(?P<args>.*)"
+                r"^(\d+)\t(\d+)\t(0)\t(\d+\.\d+)\t(\d+)\t(.*)\t([01])\t(.*)\t(.*)\t(\d+)\t(\d+)\t?(.*)"
             }
             LineRegex::FunctionExit => {
-                r"^(?P<level>\d+)\t(?P<fn_num>\d+)\t(?P<rec_type>1)\t(?P<time_idx>\d+\.\d+)\t(?P<mem_usage>\d+).*"
+                r"^(\d+)\t(\d+)\t(1)\t(\d+\.\d+)\t(\d+).*"
             }
             LineRegex::Penultimate => r"^\s+(?P<time_idx>\d+\.\d+)\t(?P<mem_usage>\d+)",
             LineRegex::End => {
