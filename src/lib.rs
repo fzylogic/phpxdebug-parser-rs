@@ -41,7 +41,6 @@ trait XtraceFn {}
 #[allow(unused)]
 #[derive(Clone, Debug)]
 pub struct XtraceFileRecord {
-    pub id: uuid::Uuid,
     pub filename: Box<PathBuf>,
     pub start: Option<XtraceStartTimeRecord>,
     pub format: Option<XtraceFmtRecord>,
@@ -312,7 +311,7 @@ fn process_line(
 
 /// Parses an Xdebug XTrace file into an XtraceFileRecord with a series
 /// of XtraceFnRecords
-pub fn parse_xtrace_file(id: uuid::Uuid, file: &Path) -> Result<XtraceFileRecord, std::io::Error> {
+pub fn parse_xtrace_file(file: &Path) -> Result<XtraceFileRecord, std::io::Error> {
     let xtrace_file = File::open(file)?;
     let mut reader = BufReader::new(xtrace_file);
     //let mut line = String::new();
