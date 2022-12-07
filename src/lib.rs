@@ -1,25 +1,27 @@
 use std::collections::HashMap;
+use std::collections::VecDeque;
+
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use lazy_static::lazy_static;
 use regex::{Regex, RegexSet};
 
 static SUPPORTED_FILE_FORMATS: &[&str] = &["4"];
 lazy_static! {
-        static ref RE_SET: regex::RegexSet = RegexSet::new([
-            LineRegex::Version.regex_str(),
-            LineRegex::Format.regex_str(),
-            LineRegex::Start.regex_str(),
-            LineRegex::FunctionEntry.regex_str(),
-            LineRegex::FunctionExit.regex_str(),
-            LineRegex::Penultimate.regex_str(),
-            LineRegex::End.regex_str(),
-        ])
-        .unwrap();
-    }
+    static ref RE_SET: regex::RegexSet = RegexSet::new([
+        LineRegex::Version.regex_str(),
+        LineRegex::Format.regex_str(),
+        LineRegex::Start.regex_str(),
+        LineRegex::FunctionEntry.regex_str(),
+        LineRegex::FunctionExit.regex_str(),
+        LineRegex::Penultimate.regex_str(),
+        LineRegex::End.regex_str(),
+    ])
+    .unwrap();
+}
 #[derive(Clone, Debug)]
 enum RecType {
     Entry,
@@ -39,6 +41,7 @@ trait XtraceFn {}
 #[derive(Clone, Debug)]
 pub struct XtraceFileRecord {
     pub id: uuid::Uuid,
+    pub filename: Box<PathBuf>,
     pub start: Option<XtraceStartTimeRecord>,
     pub format: Option<XtraceFmtRecord>,
     pub version: Option<XtraceVersionRecord>,
@@ -55,7 +58,7 @@ impl XtraceFileRecord {
             if let Some(entry_record) = &record.entry_record {
                 let prefix = "  ".repeat(entry_record.level.try_into().unwrap());
                 println!(
-                    "{prefix}{}({}) ({}) ({})",
+                    "{prefix}{}({:?}) ({}) ({})",
                     &entry_record.fn_name,
                     &entry_record.fn_type,
                     &entry_record.file_name,
@@ -101,9 +104,10 @@ pub struct XtraceVersionRecord {
 impl XtraceRecord for XtraceStartTimeRecord {
     fn new(line: &str) -> Self {
         let re = Regex::new(LineRegex::Start.regex_str()).unwrap();
-        let _cap = re.captures(line).ok_or("oops").unwrap();
+        let cap = re.captures(line).ok_or("oops").unwrap();
+
         XtraceStartTimeRecord {
-            start_time: String::from("Sat Dec  3 18:01:30 PST 2022"),
+            start_time: cap.name("start").unwrap().as_str().to_owned(),
             rec_type: RecType::StartTime,
         }
     }
@@ -144,49 +148,41 @@ pub struct XtraceFmtRecord {
     rec_type: RecType,
 }
 
-/*    enum FnType {
+#[derive(Clone, Debug)]
+pub enum FnType {
     Internal,
     User,
-}*/
+}
+
+impl FnType {
+    fn from(num: u8) -> FnType {
+        match num {
+            0 => FnType::Internal,
+            1 => FnType::User,
+            _ => panic!("Found unknown function type: {num}"),
+        }
+    }
+}
 
 impl XtraceFn for XtraceEntryRecord {}
 impl XtraceRecord for XtraceEntryRecord {
     fn new(line: &str) -> Self {
-        let re = Regex::new(LineRegex::FunctionEntry.regex_str()).unwrap();
-        let cap = re.captures(line).ok_or("oops").unwrap();
+        let this_line = line.trim();
+        let mut fields: VecDeque<&str> = this_line.split('\t').collect();
         return XtraceEntryRecord {
             rec_type: RecType::Entry,
-            level: cap.name("level").unwrap().as_str().parse::<u32>().unwrap(),
-            fn_num: cap.name("fn_num").unwrap().as_str().parse::<u32>().unwrap(),
-            time_idx: cap
-                .name("time_idx")
-                .unwrap()
-                .as_str()
-                .parse::<f64>()
-                .unwrap(),
-            mem_usage: cap
-                .name("mem_usage")
-                .unwrap()
-                .as_str()
-                .parse::<u32>()
-                .unwrap(),
-            fn_name: cap.name("fn_name").unwrap().as_str().to_owned(),
-            fn_type: cap.name("fn_type").unwrap().as_str().parse::<u8>().unwrap(),
-            inc_file_name: cap.name("inc_file_name").unwrap().as_str().to_owned(),
-            file_name: cap.name("file_name").unwrap().as_str().to_owned(),
-            line_num: cap
-                .name("line_num")
-                .unwrap()
-                .as_str()
-                .parse::<u32>()
-                .unwrap(),
-            arg_num: cap
-                .name("arg_num")
-                .unwrap()
-                .as_str()
-                .parse::<u32>()
-                .unwrap(),
-            args: cap.name("args").unwrap().as_str().to_owned(),
+            level: fields.pop_front().unwrap().parse::<u32>().unwrap(),
+            fn_num: fields.pop_front().unwrap().parse::<u32>().unwrap(),
+            type_tag: fields.pop_front().unwrap().parse::<u8>().unwrap(),
+            time_idx: fields.pop_front().unwrap().parse::<f64>().unwrap(),
+            mem_usage: fields.pop_front().unwrap().parse::<u32>().unwrap(),
+            fn_name: fields.pop_front().unwrap().to_owned(),
+            fn_type: FnType::from(fields.pop_front().unwrap().parse::<u8>().unwrap()),
+            inc_file_name: fields.pop_front().unwrap().to_owned(),
+            file_name: fields.pop_front().unwrap().to_owned(),
+            line_num: fields.pop_front().unwrap().parse::<u32>().unwrap(),
+            arg_num: fields.pop_front().unwrap().parse::<u32>().unwrap(),
+            args: fields.iter().map(|f| f.to_string()).collect(),
         };
     }
 }
@@ -197,39 +193,31 @@ pub struct XtraceEntryRecord {
     rec_type: RecType,
     pub level: u32,
     pub fn_num: u32,
+    type_tag: u8,
     pub time_idx: f64,
     pub mem_usage: u32,
     pub fn_name: String,
-    pub fn_type: u8,
+    pub fn_type: FnType,
     pub inc_file_name: String,
     pub file_name: String,
     pub line_num: u32,
     pub arg_num: u32,
     //TODO Make this a byte slice
-    pub args: String,
+    pub args: Vec<String>,
 }
 
 impl XtraceFn for XtraceExitRecord {}
 impl XtraceRecord for XtraceExitRecord {
     fn new(line: &str) -> Self {
-        let re = Regex::new(LineRegex::FunctionExit.regex_str()).unwrap();
-        let cap = re.captures(line).ok_or("oops").unwrap();
+        let this_line = line.trim();
+        let mut fields: VecDeque<&str> = this_line.split('\t').collect();
         XtraceExitRecord {
             rec_type: RecType::Exit,
-            level: cap.name("level").unwrap().as_str().parse::<u32>().unwrap(),
-            fn_num: cap.name("fn_num").unwrap().as_str().parse::<u32>().unwrap(),
-            time_idx: cap
-                .name("time_idx")
-                .unwrap()
-                .as_str()
-                .parse::<f64>()
-                .unwrap(),
-            mem_usage: cap
-                .name("mem_usage")
-                .unwrap()
-                .as_str()
-                .parse::<u32>()
-                .unwrap(),
+            level: fields.pop_front().unwrap().parse::<u32>().unwrap(),
+            fn_num: fields.pop_front().unwrap().parse::<u32>().unwrap(),
+            type_tag: fields.pop_front().unwrap().parse::<u8>().unwrap(),
+            time_idx: fields.pop_front().unwrap().parse::<f64>().unwrap(),
+            mem_usage: fields.pop_front().unwrap().parse::<u32>().unwrap(),
         }
     }
 }
@@ -239,6 +227,7 @@ pub struct XtraceExitRecord {
     pub level: u32,
     pub fn_num: u32,
     rec_type: RecType,
+    type_tag: u8,
     pub time_idx: f64,
     pub mem_usage: u32,
 }
@@ -262,15 +251,11 @@ impl LineRegex {
                 r"^TRACE START \[(?P<start>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+)\]"
             }
             LineRegex::FunctionEntry => {
-                r"^(?P<level>\d+)\t(?P<fn_num>\d+)\t(?P<rec_type>0)\t(?P<time_idx>\d+\.\d+)\t(?P<mem_usage>\d+)\t(?P<fn_name>.*)\t(?P<fn_type>[01])\t(?P<inc_file_name>.*)\t(?P<file_name>.*)\t(?P<line_num>\d+)\t(?P<arg_num>\d+)\t?(?P<args>.*)"
+                r"^(\d+)\t(\d+)\t(0)\t(\d+\.\d+)\t(\d+)\t(.*)\t([01])\t(.*)\t(.*)\t(\d+)\t(\d+)\t?(.*)"
             }
-            LineRegex::FunctionExit => {
-                r"^(?P<level>\d+)\t(?P<fn_num>\d+)\t(?P<rec_type>1)\t(?P<time_idx>\d+\.\d+)\t(?P<mem_usage>\d+).*"
-            }
+            LineRegex::FunctionExit => r"^(\d+)\t(\d+)\t(1)\t(\d+\.\d+)\t(\d+).*",
             LineRegex::Penultimate => r"^\s+(?P<time_idx>\d+\.\d+)\t(?P<mem_usage>\d+)",
-            LineRegex::End => {
-                r"^TRACE END\s+\[(?P<end>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+)\]"
-            }
+            LineRegex::End => r"^TRACE END\s+\[(?P<end>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+)\]",
         }
     }
 }
@@ -311,16 +296,14 @@ fn process_line(
     };
 }
 
-pub fn parse_xtrace_file(
-    id: uuid::Uuid,
-    file: &Path,
-) -> Result<XtraceFileRecord, std::io::Error> {
+pub fn parse_xtrace_file(id: uuid::Uuid, file: &Path) -> Result<XtraceFileRecord, std::io::Error> {
     let xtrace_file = File::open(file)?;
     let mut reader = BufReader::new(xtrace_file);
     //let mut line = String::new();
     let mut line: Vec<u8> = Vec::new();
     let mut file_run = XtraceFileRecord {
         id,
+        filename: Box::new(file.to_owned()),
         format: None,
         start: None,
         version: None,
@@ -335,6 +318,13 @@ pub fn parse_xtrace_file(
                 if size == 0 {
                     return Ok(file_run);
                 }
+                
+                //println!("Processing line {line_number}: {line}");
+                if line.len() == 1 {
+                    // likely just a newline
+                    continue;
+                }
+                
                 process_line(
                     &mut file_run,
                     &mut entry_cache,
@@ -359,13 +349,3 @@ pub fn parse_xtrace_file(
     ret_val: u32, // Need to confirm this type. I have yet to see an example to work from and the docs aren't specific.
 }*/
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
