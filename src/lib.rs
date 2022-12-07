@@ -165,8 +165,9 @@ impl FnType {
 impl XtraceFn for XtraceEntryRecord {}
 impl XtraceRecord for XtraceEntryRecord {
     fn new(line: &str) -> Self {
+        let this_line = line.trim();
         println!("{line}");
-        let mut fields: VecDeque<&str> = line.split("\t").collect();
+        let mut fields: VecDeque<&str> = this_line.split("\t").collect();
         println!("{:?}", fields);
         return XtraceEntryRecord {
             rec_type: RecType::Entry,
