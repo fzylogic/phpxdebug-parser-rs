@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::collections::VecDeque;
-use std::ffi::{OsStr, OsString};
+use std::ffi::{OsString};
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
@@ -168,7 +168,7 @@ impl XtraceFn for XtraceEntryRecord {}
 impl XtraceRecord for XtraceEntryRecord {
     fn new(line: &str) -> Self {
         let this_line = line.trim();
-        let mut fields: VecDeque<&str> = this_line.split("\t").collect();
+        let mut fields: VecDeque<&str> = this_line.split('\t').collect();
         return XtraceEntryRecord {
             rec_type: RecType::Entry,
             level: fields.pop_front().unwrap().parse::<u32>().unwrap(),
@@ -210,7 +210,7 @@ impl XtraceFn for XtraceExitRecord {}
 impl XtraceRecord for XtraceExitRecord {
     fn new(line: &str) -> Self {
         let this_line = line.trim();
-        let mut fields: VecDeque<&str> = this_line.split("\t").collect();
+        let mut fields: VecDeque<&str> = this_line.split('\t').collect();
         XtraceExitRecord {
             rec_type: RecType::Exit,
             level: fields.pop_front().unwrap().parse::<u32>().unwrap(),
