@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::collections::VecDeque;
-use std::ffi::{OsString};
+
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
@@ -348,13 +348,3 @@ pub fn parse_xtrace_file(id: uuid::Uuid, file: &Path) -> Result<XtraceFileRecord
     ret_val: u32, // Need to confirm this type. I have yet to see an example to work from and the docs aren't specific.
 }*/
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
