@@ -317,7 +317,6 @@ pub fn parse_xtrace_file(file: &Path) -> Result<XtraceFileRecord, std::io::Error
     //let mut line = String::new();
     let mut line: Vec<u8> = Vec::new();
     let mut file_run = XtraceFileRecord {
-        id,
         filename: Box::new(file.to_owned()),
         format: None,
         start: None,
