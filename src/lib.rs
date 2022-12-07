@@ -37,6 +37,7 @@ trait XtraceRecord {
 
 trait XtraceFn {}
 
+/// Struct that encompasses an Xdebug run on an entire file
 #[allow(unused)]
 #[derive(Clone, Debug)]
 pub struct XtraceFileRecord {
@@ -69,6 +70,7 @@ impl XtraceFileRecord {
     }
 }
 
+/// Struct mapping a function call to its entry and exit data
 #[allow(unused)]
 #[derive(Clone, Debug)]
 pub struct XtraceFnRecord {
@@ -94,6 +96,7 @@ impl XtraceRecord for XtraceVersionRecord {
     }
 }
 
+/// Struct describing the line that specifies the Xdebug version used
 #[allow(unused)]
 #[derive(Clone, Debug)]
 pub struct XtraceVersionRecord {
@@ -113,6 +116,7 @@ impl XtraceRecord for XtraceStartTimeRecord {
     }
 }
 
+/// Struct describing the line that specifies the start time of an Xdebug trace
 #[allow(unused)]
 #[derive(Clone, Debug)]
 pub struct XtraceStartTimeRecord {
@@ -141,6 +145,7 @@ impl XtraceRecord for XtraceFmtRecord {
     }
 }
 
+/// Struct describing the line that specifies the file format
 #[allow(unused)]
 #[derive(Clone, Debug)]
 pub struct XtraceFmtRecord {
@@ -148,12 +153,14 @@ pub struct XtraceFmtRecord {
     rec_type: RecType,
 }
 
+/// Enumerate the two possible function types: Internal or User-defined
 #[derive(Clone, Debug)]
 pub enum FnType {
     Internal,
     User,
 }
 
+/// Map a function type ID (0 or 1) to a more friendly name
 impl FnType {
     fn from(num: u8) -> FnType {
         match num {
@@ -187,6 +194,7 @@ impl XtraceRecord for XtraceEntryRecord {
     }
 }
 
+/// Record type denoting the entrance into a function call
 #[allow(unused)]
 #[derive(Clone, Debug)]
 pub struct XtraceEntryRecord {
@@ -221,6 +229,8 @@ impl XtraceRecord for XtraceExitRecord {
         }
     }
 }
+
+/// Record type denoting the exit from a function call
 #[allow(unused)]
 #[derive(Clone, Debug)]
 pub struct XtraceExitRecord {
@@ -232,6 +242,7 @@ pub struct XtraceExitRecord {
     pub mem_usage: u32,
 }
 
+/// Enumerate all of the possible regular expressions we use to map specific record lines
 enum LineRegex {
     Version,
     Format,
@@ -242,6 +253,8 @@ enum LineRegex {
     Penultimate,
 }
 
+/// A set of regular expressions used for matching a line with a record type
+/// and/or extracting data from a given line.
 impl LineRegex {
     fn regex_str(&self) -> &str {
         match self {
@@ -260,6 +273,7 @@ impl LineRegex {
     }
 }
 
+/// Process a single line into an appropriate record type
 fn process_line(
     run: &mut XtraceFileRecord,
     entry_cache: &mut HashMap<u32, XtraceEntryRecord>,
@@ -296,6 +310,8 @@ fn process_line(
     };
 }
 
+/// Parses an Xdebug XTrace file into an XtraceFileRecord with a series
+/// of XtraceFnRecords
 pub fn parse_xtrace_file(id: uuid::Uuid, file: &Path) -> Result<XtraceFileRecord, std::io::Error> {
     let xtrace_file = File::open(file)?;
     let mut reader = BufReader::new(xtrace_file);
