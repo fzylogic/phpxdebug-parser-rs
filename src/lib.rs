@@ -171,7 +171,7 @@ impl XtraceRecord for XtraceEntryRecord {
             rec_type: RecType::Entry,
             level: fields.pop_front().unwrap().parse::<u32>().unwrap(),
             fn_num: fields.pop_front().unwrap().parse::<u32>().unwrap(),
-            type_tag: fields.pop_front().unwrap.parse::<u8>().unwrap(),
+            type_tag: fields.pop_front().unwrap().parse::<u8>().unwrap(),
             time_idx: fields.pop_front().unwrap().parse::<f64>().unwrap(),
             mem_usage: fields.pop_front().unwrap().parse::<u32>().unwrap(),
             fn_name: fields.pop_front().unwrap().to_owned(),
