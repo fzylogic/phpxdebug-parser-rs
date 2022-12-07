@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::collections::VecDeque;
+use std::ffi::{OsStr, OsString};
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
@@ -40,6 +41,7 @@ trait XtraceFn {}
 #[derive(Clone, Debug)]
 pub struct XtraceFileRecord {
     pub id: uuid::Uuid,
+    pub filename: Box<OsString>,
     pub start: Option<XtraceStartTimeRecord>,
     pub format: Option<XtraceFmtRecord>,
     pub version: Option<XtraceVersionRecord>,
@@ -308,6 +310,7 @@ pub fn parse_xtrace_file(
     let mut line: Vec<u8> = Vec::new();
     let mut file_run = XtraceFileRecord {
         id,
+        filename: Box::new(file.file_name().unwrap().to_os_string()),
         format: None,
         start: None,
         version: None,
