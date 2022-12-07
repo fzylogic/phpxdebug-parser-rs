@@ -329,14 +329,12 @@ pub fn parse_xtrace_file(
     let mut entry_cache: HashMap<u32, XtraceEntryRecord> = HashMap::new();
     let mut line_number: u32 = 1;
     loop {
-        //let result = reader.read_line(&mut line);
         let result = reader.read_until(0xA, &mut line);
         match result {
             Ok(size) => {
                 if size == 0 {
                     return Ok(file_run);
                 }
-                //println!("Processing line {line_number}: {line}");
                 process_line(
                     &mut file_run,
                     &mut entry_cache,
