@@ -52,21 +52,6 @@ impl XtraceFileRecord {
     fn add_fn_record(&mut self, func: XtraceFnRecord) {
         self.fn_records.push(func);
     }
-
-    pub fn print_tree(&self) {
-        for record in self.fn_records.iter() {
-            if let Some(entry_record) = &record.entry_record {
-                let prefix = "  ".repeat(entry_record.level.try_into().unwrap());
-                println!(
-                    "{prefix}{}({:?}) ({}) ({})",
-                    &entry_record.fn_name,
-                    &entry_record.fn_type,
-                    &entry_record.file_name,
-                    &entry_record.inc_file_name
-                );
-            }
-        }
-    }
 }
 
 /// Struct mapping a function call to its entry and exit data

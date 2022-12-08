@@ -1,7 +1,16 @@
 [package]
 name = "phpxdebug-parser"
+authors = ["Jeremy Hanmer <jeremy@dreamhost.com>"]
 version = "0.1.0"
 edition = "2021"
+categories = ["data-structures"]
+keywords = ["parser", "php", "xdebug"]
+description = "Parsing library for PHP's XDebug machine-readable output format"
+homepage = "https://github.com/fzylogic/phpxdebug-parser-rs"
+repository = "https://github.com/fzylogic/phpxdebug-parser-rs.git"
+license = "Apache-2.0"
+readme = "README.md"
+exclude = [".idea/"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
